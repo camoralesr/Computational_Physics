@@ -15,19 +15,20 @@ T = 2*pi / om
 # -----------------------------------------------------
 # Initial conditions: grid
 # -----------------------------------------------------
-x0_values = np.arange(-4, 4.1, 0.1)
-v0_values = np.arange(0, 0.5, 0.5)
-X0, V0 = np.meshgrid(x0_values, v0_values)
-x0_flat = X0.ravel()
-v0_flat = V0.ravel()
-n_orbits = len(x0_flat)
-y = np.concatenate([x0_flat, v0_flat])
+x0 = np.linspace(-3, 3, 100)
+v0 = np.linspace(0, 1, 2)
+X0, V0 = np.meshgrid(x0, v0)
+x01 = X0.ravel()
+v01 = V0.ravel()
+n = len(x01)
+print(n)
+y = np.concatenate([x01, v01])
 
 # -----------------------------------------------------
 # Method parameters
 # -----------------------------------------------------
 Trans = 0
-Nperiods = 5000
+Nperiods = 1000
 steps_per_T = 300
 dt = T / steps_per_T
 
@@ -35,8 +36,8 @@ dt = T / steps_per_T
 # Dynamics: forced Duffing oscillator
 # -----------------------------------------------------
 def dyn(t, y):
-    x = y[:n_orbits]
-    v = y[n_orbits:]
+    x = y[:n]
+    v = y[n:]
     dx = v
     dv = F*cos(om*t)/m - (k/m)*x - (l/m)*x**3
     return np.concatenate([dx, dv])
@@ -54,15 +55,14 @@ def rk4(f, t, y, h):
 # -----------------------------------------------------
 # Stroboscopic storage
 # -----------------------------------------------------
-n_saved = Nperiods - Trans + 1
-x_strobe = np.empty((n_saved, n_orbits))
-v_strobe = np.empty((n_saved, n_orbits))
-# Initial stroboscopic point
-save_index = 0
+ns = Nperiods - Trans + 1
+xs = np.empty((ns, n))
+vs = np.empty((ns, n))
+s = 0
 if Trans == 0:
-    x_strobe[save_index] = y[:n_orbits]
-    v_strobe[save_index] = y[n_orbits:]
-    save_index += 1
+    xs[s] = y[:n]
+    vs[s] = y[n:]
+    s += 1
 
 # -----------------------------------------------------
 # Integration
@@ -74,23 +74,25 @@ for step in range(total_steps):
     completed_period = (step + 1) // steps_per_T
     if (step + 1) % steps_per_T == 0:
         if completed_period >= max(1, Trans):
-            x_strobe[save_index] = y[:n_orbits]
-            v_strobe[save_index] = y[n_orbits:]
-            save_index += 1
+            xs[s] = y[:n]
+            vs[s] = y[n:]
+            s += 1
 
 # ---------------------------------------------------------
 # Colors according to initial condition & Stroboscopic map
 # ---------------------------------------------------------
 colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple']
-orbit_colors = [colors[i % len(colors)] for i in range(n_orbits)]
+oc = [colors[i % len(colors)] for i in range(n)]
 fig, ax = plt.subplots(figsize=(8, 6))
-for i in range(n_orbits):
-    ax.scatter(x_strobe[:, i], v_strobe[:, i], s=1, color=orbit_colors[i],
+for i in range(n):
+    ax.scatter(xs[:, i], vs[:, i], s=1, color=oc[i],
         linewidths=0, rasterized=True)
-ax.set_xlabel(r"$x$", fontsize=22)
-ax.set_ylabel(r"$\dot{x}$", fontsize=22)
-ax.tick_params(axis="both", labelsize=18)
-ax.set_box_aspect(0.65)
+ax.set_xlim(-3, 3)
+ax.set_ylim(-6, 6)
+ax.set_xlabel(r"$x$", fontsize=14)
+ax.set_ylabel(r"$\dot{x}$", fontsize=14)
+ax.tick_params(axis="both", labelsize=12)
+ax.set_box_aspect(0.6)
 plt.tight_layout()
 plt.savefig('MS.pdf', format='pdf', bbox_inches='tight', dpi=800)
 plt.show()
